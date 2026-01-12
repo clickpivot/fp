@@ -82,10 +82,10 @@
                                             <h4 class="font-medium text-gray-200">{{ $play->pool->name }}</h4>
                                             <p class="text-sm text-gray-400">{{ $play->pool->event->name }}</p>
                                             <p class="text-xs text-gray-500 mt-1">
-                                                {{ $play->pool->event->event_date->format('M j, Y') }}
-                                                @if ($play->pool->event->event_date->isToday())
+                                                {{ $play->pool->event->event_date ? $play->pool->event->event_date->format('M j, Y') : 'Date TBA' }}
+                                                @if ($play->pool->event->event_date && $play->pool->event->event_date->isToday())
                                                     <span class="text-orange-500 font-medium">• TODAY</span>
-                                                @elseif ($play->pool->event->event_date->isTomorrow())
+                                                @elseif ($play->pool->event->event_date && $play->pool->event->event_date->isTomorrow())
                                                     <span class="text-yellow-500">• Tomorrow</span>
                                                 @endif
                                             </p>
@@ -141,7 +141,7 @@
                                         <div class="flex items-center justify-between">
                                             <div>
                                                 <h4 class="font-medium text-gray-400">{{ $play->pool->name }}</h4>
-                                                <p class="text-sm text-gray-500">{{ $play->pool->event->event_date->format('M j, Y') }}</p>
+                                                <p class="text-sm text-gray-500">{{ $play->pool->event->event_date ? $play->pool->event->event_date->format('M j, Y') : 'Date TBA' }}</p>
                                             </div>
                                             <div class="flex items-center gap-4">
                                                 <div class="text-right">
@@ -177,7 +177,7 @@
                             @forelse ($upcomingEvents as $event)
                                 <div class="p-4">
                                     <h4 class="font-medium text-gray-200">{{ $event->name }}</h4>
-                                    <p class="text-sm text-gray-500">{{ $event->event_date->format('M j, Y') }}</p>
+                                    <p class="text-sm text-gray-500">{{ $event->event_date ? $event->event_date->format('M j, Y') : 'Date TBA' }}</p>
                                     @if ($event->pools->count() > 0)
                                         <div class="mt-2">
                                             <span class="text-xs text-orange-400">{{ $event->pools->count() }} pool(s) available</span>
