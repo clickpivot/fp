@@ -16,18 +16,19 @@ class PoolController extends Controller
     {
         $pools = Pool::with(['event', 'plays'])
             ->whereHas('event', function ($query) {
-                $query->where('event_date', '>=', now()->subDays(1));
+                $query->where('event_date', '>=', now()->subDays(1))
+                    ->orWhereNull('event_date');
             })
             ->orderBy('created_at', 'desc')
             ->get();
 
         // Group pools by upcoming vs past
         $upcomingPools = $pools->filter(function ($pool) {
-            return $pool->event->event_date >= now();
+            return !$pool->event->event_date || $pool->event->event_date >= now();
         });
 
         $pastPools = $pools->filter(function ($pool) {
-            return $pool->event->event_date < now();
+            return $pool->event->event_date && $pool->event->event_date < now();
         });
 
         return view('pools.index', compact('upcomingPools', 'pastPools'));
@@ -48,7 +49,7 @@ class PoolController extends Controller
         }
 
         $hasJoined = $userPlay !== null;
-        $eventStarted = $pool->event->event_date <= now();
+        $eventStarted = $pool->event->event_date && $pool->event->event_date <= now();
 
         return view('pools.show', compact('pool', 'userPlay', 'hasJoined', 'eventStarted'));
     }
@@ -71,7 +72,7 @@ class PoolController extends Controller
         }
 
         // Check if event has started
-        if ($pool->event->event_date <= now()) {
+        if ($pool->event->event_date && $pool->event->event_date <= now()) {
             return back()->with('error', 'This event has already started. You cannot join.');
         }
 
