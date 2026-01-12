@@ -14,24 +14,15 @@ class PoolController extends Controller
      */
     public function index()
     {
-        $pools = Pool::with(['event', 'plays'])
+        $pools = Pool::with(['event'])
+            ->withCount('plays')
             ->whereHas('event', function ($query) {
-                $query->where('event_date', '>=', now()->subDays(1))
-                    ->orWhereNull('event_date');
+                $query->where('starts_at', '>=', now()->subDays(1));
             })
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // Group pools by upcoming vs past
-        $upcomingPools = $pools->filter(function ($pool) {
-            return !$pool->event->event_date || $pool->event->event_date >= now();
-        });
-
-        $pastPools = $pools->filter(function ($pool) {
-            return $pool->event->event_date && $pool->event->event_date < now();
-        });
-
-        return view('pools.index', compact('upcomingPools', 'pastPools'));
+        return view('pools.index', compact('pools'));
     }
 
     /**
@@ -49,7 +40,7 @@ class PoolController extends Controller
         }
 
         $hasJoined = $userPlay !== null;
-        $eventStarted = $pool->event->event_date && $pool->event->event_date <= now();
+        $eventStarted = $pool->event->starts_at && $pool->event->starts_at <= now();
 
         return view('pools.show', compact('pool', 'userPlay', 'hasJoined', 'eventStarted'));
     }
@@ -72,7 +63,7 @@ class PoolController extends Controller
         }
 
         // Check if event has started
-        if ($pool->event->event_date && $pool->event->event_date <= now()) {
+        if ($pool->event->starts_at && $pool->event->starts_at <= now()) {
             return back()->with('error', 'This event has already started. You cannot join.');
         }
 
@@ -80,7 +71,7 @@ class PoolController extends Controller
         $play = Play::create([
             'pool_id' => $pool->id,
             'user_id' => $user->id,
-            'total_points' => 0,
+            'total_score' => 0,
         ]);
 
         return redirect()->route('plays.edit', $play)
@@ -99,7 +90,7 @@ class PoolController extends Controller
         // Get all plays with picks, ordered by total points
         $plays = $pool->plays()
             ->with(['user', 'picks.fight'])
-            ->orderBy('total_points', 'desc')
+            ->orderBy('total_score', 'desc')
             ->get();
 
         // Calculate rankings (handle ties)
@@ -108,14 +99,15 @@ class PoolController extends Controller
         $sameRankCount = 0;
 
         foreach ($plays as $play) {
-            if ($play->total_points !== $lastPoints) {
+            if ($play->total_score !== $lastPoints) {
                 $rank += $sameRankCount + 1;
                 $sameRankCount = 0;
             } else {
                 $sameRankCount++;
             }
+
             $play->rank = $rank;
-            $lastPoints = $play->total_points;
+            $lastPoints = $play->total_score;
         }
 
         $eventCompleted = $pool->event->fights->every(function ($fight) {
